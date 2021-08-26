@@ -13,6 +13,7 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const ejsMate = require('ejs-mate');
 const flash = require('connect-flash');
+const mongoSanitize = require('express-mongo-sanitize');
 const User = require('./models/user');
 const userRoutes = require('./routes/users');
 const campgroundRoutes = require('./routes/campgrounds');
@@ -20,6 +21,7 @@ const reviewRoutes = require('./routes/reviews');
 
 mongoose.connect('mongodb://localhost:27017/insta-camp', {
 	useNewUrlParser: true,
+	useCreateIndex: true,
 	useUnifiedTopology: true,
 	useFindAndModify: false
 });
@@ -31,6 +33,7 @@ db.once('open', function() {
 });
 
 const sessionConfig = {
+	name: 'session',
 	secret: 'thisissecret',
 	resave: false,
 	saveUninitialized: true,
@@ -41,6 +44,13 @@ const sessionConfig = {
 	}
 };
 
+app.engine('ejs', ejsMate);
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'ejs');
+app.use(express.urlencoded({ extended: true }));
+app.use(methodOverride('_method'));
+app.use(mongoSanitize());
 app.use(session(sessionConfig));
 app.use(flash());
 app.use(passport.initialize());
@@ -54,12 +64,6 @@ app.use((req, res, next) => {
 	res.locals.error = req.flash('error');
 	next();
 });
-app.engine('ejs', ejsMate);
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.set('view engine', 'ejs');
-app.use(express.urlencoded({ extended: true }));
-app.use(methodOverride('_method'));
 
 app.use('/', userRoutes);
 app.use('/campgrounds', campgroundRoutes);
